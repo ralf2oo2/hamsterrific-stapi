@@ -1,12 +1,14 @@
 package ralf2oo2.hamsterrific.client.render.entity.model;
 
 import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.render.entity.model.EntityModel;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import org.lwjgl.opengl.GL11;
 import ralf2oo2.hamsterrific.client.render.entity.modelpart.BallModelPart;
 import ralf2oo2.hamsterrific.entity.HamsterEntity;
 
-public class HamsterEntityModel {
+public class HamsterEntityModel extends EntityModel {
     public ModelPart hamsterHead;
     public ModelPart hamsterBody;
     public ModelPart hamsterLegBackRight;
@@ -20,6 +22,9 @@ public class HamsterEntityModel {
     public ModelPart[] hamsterCheekRight;
     public ModelPart[] hamsterCheekLeft;
     public BallModelPart ball;
+
+    public boolean isChild = false;
+    public boolean isInBall = false;
 
     public HamsterEntityModel(){
         this.hamsterHead = new ModelPart(0, 0);
@@ -66,12 +71,12 @@ public class HamsterEntityModel {
         this.hamsterLegFrontLeft.setPivot(2.0f, 21.0f, -0.5f);
         this.ball = new BallModelPart( 0, 0);
     }
-
-    public void render(HamsterEntity entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch, float scale) {
+    @Override
+    public void render(float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch, float scale) {
         this.setAngles(limbAngle, limbDistance, animationProgress, headYaw, headPitch, scale);
 
-        // TODO: check if hamster is child
-        if(false){
+
+        if(isChild){
             GL11.glPushMatrix();
             GL11.glScalef(0.5f, 0.5f, 0.5f);
         }
@@ -95,18 +100,18 @@ public class HamsterEntityModel {
         this.hamsterLegFrontRight.render(scale);
         this.hamsterLegFrontLeft.render(scale);
 
-        // TODO: check if hamster is child
-        if(false){
+        if(isChild){
             GL11.glPopMatrix();
         }
 
-        // TODO: check if hamster is in ball
-        if(false){
+
+        if(isInBall){
             //this.ball.color = entity.getBallColor();
             this.ball.render(scale);
         }
     }
 
+    @Override
     public void setAngles(float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch, float scale) {
         this.ball.rotation = (int)limbAngle;
 
@@ -132,7 +137,15 @@ public class HamsterEntityModel {
     }
 
     // TODO: implement animation
-    public void animateModel(HamsterEntity entity, float limbAngle, float limbDistance, float tickDelta) {
+    @Override
+    public void animateModel(LivingEntity entity, float limbAngle, float limbDistance, float tickDelta) {
+        HamsterEntity hamsterEntity = (HamsterEntity)entity;
+
+        // TODO: check if hamster is child
+        isChild = false;
+        // TODO: check if hamster is in ball
+        isInBall = false;
+
 
     }
 }
