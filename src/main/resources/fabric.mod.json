@@ -3,7 +3,7 @@
   "id": "hamsterrific",
   "version": "${version}",
 
-  "name": "Example Mod",
+  "name": "Hamsterrific",
   "description": "This is an example description! Tell everyone what your mod is about!",
   "authors": [
     "Me!"
@@ -19,7 +19,10 @@
   "environment": "*",
   "entrypoints": {
     "stationapi:event_bus": [
-      "ralf2oo2.hamsterrific.events.init.InitListener"
+      "ralf2oo2.hamsterrific.Hamsterrific",
+      "ralf2oo2.hamsterrific.event.init.BlockRegistry",
+      "ralf2oo2.hamsterrific.event.init.BlockEntityRegistry",
+      "ralf2oo2.hamsterrific.event.init.BlockEntityRendererRegistry"
     ],
     "stationapi:event_bus_client": [
     ],
