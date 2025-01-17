@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.texture.TextureManager;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.modificationstation.stationapi.api.client.model.item.ItemWithRenderer;
 import net.modificationstation.stationapi.api.template.item.TemplateItem;
@@ -20,6 +21,11 @@ public class HamsterBallItem extends TemplateItem implements ItemWithRenderer {
         this.setHasSubtypes(true);
         this.setMaxDamage(0);
         this.setMaxCount(1);
+    }
+
+    @Override
+    public Item setHandheld() {
+        return super.setHandheld();
     }
 
     @Override
