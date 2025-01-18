@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class HamsterEntity extends AnimalEntity {
+public class HamsterEntity extends AgeableEntity {
     private ItemStack heldItem;
     private int stackCount;
     private int eatCount;
@@ -60,7 +60,13 @@ public class HamsterEntity extends AnimalEntity {
         this.movementSpeed = 0.30000001192092896f;
         this.maxHealth = 10;
 
-        // TODO: load texture
+        // TODO: check if this code works
+        String texture = null;
+        if (this.getHamsterColor() == "") {
+            this.setHamsterColor(this.getRandomHamsterColor());
+            texture = this.getHamsterColor();
+            this.resourceLocation = texture;
+        }
     }
 
     private String getRandomHamsterColor() {
@@ -134,7 +140,7 @@ public class HamsterEntity extends AnimalEntity {
         if (color.length() > 0) {
             if (HamsterEntity.hamsterColorList.contains(color)) {
                 this.setHamsterColor(color);
-                this.resourceLocation = new ResourceLocation(color);
+                this.resourceLocation = color;
             }
             else {
                 this.dead = true;
@@ -165,7 +171,7 @@ public class HamsterEntity extends AnimalEntity {
                     //player.getHand() == null; TODO: handle this case if needed
                 }
             }
-            this.setAttackTarget(null);
+            this.setTarget(null);
             this.setHamsterAngry(false);
             this.inLove = 600;
             this.target = null;
@@ -201,7 +207,7 @@ public class HamsterEntity extends AnimalEntity {
                 this.setInBall(false);
                 return true;
             }
-            return this.interactPaperTamed(entityplayer);
+            return this.interactPaperTamed(player);
         }
     }
 
@@ -216,8 +222,8 @@ public class HamsterEntity extends AnimalEntity {
                 this.setPath(null);
                 this.setHamsterStanding(false);
                 this.setHamsterSitting(true);
-                this.setAttackTarget(null);
-                this.isJumping = false;
+                this.setTarget(null);
+                this.jumping = false;
                 this.health = 10;
                 this.setHamsterOwner(player.name);
                 this.showHeartsOrSmokeFX("heart", 7, true);
@@ -233,7 +239,7 @@ public class HamsterEntity extends AnimalEntity {
                 this.setHamsterAngry(false);
                 this.setPath(null);
                 // TODO: check if this is even necessary
-                this.isJumping = false;
+                this.jumping = false;
                 this.setTarget(null);
                 this.target = null;
                 this.showHeartsOrSmokeFX("note", 1, false);
@@ -284,8 +290,8 @@ public class HamsterEntity extends AnimalEntity {
         else if (this.isHamsterSitting()) {
             this.setHamsterSitting(false);
         }
-        this.isJumping = false;
-        this.setPath((PathEntity)null);
+        this.jumping = false;
+        this.setPath(null);
         this.setTarget(null);
         //TODO: this code originally refered to entityToAttack, this code might not exist in b1.7.3 and could possibly be removed
         this.target = null;
@@ -298,13 +304,13 @@ public class HamsterEntity extends AnimalEntity {
         if (this.targetFood != null) {
             this.actionToTargetFood();
         }
-        if (this.isInWater()) {
+        if (this.isSubmergedInWater()) {
             this.setHamsterSitting(false);
             this.setHamsterStanding(false);
         }
         if (this.isHamsterStanding() || this.isHamsterSitting()) {
             this.movementBlocked = false;
-            this.isJumping = false;
+            this.jumping = false;
             this.setPath(null);
             //TODO: setTarget is probably incorrect
             this.setTarget(null);
@@ -411,7 +417,7 @@ public class HamsterEntity extends AnimalEntity {
                 this.target = lookTarget;
             }
         }
-
+        return this.entityLivingBaseAttackEntityFrom(damageSource, amount);
     }
 
     public boolean entityLivingBaseAttackEntityFrom(final Entity damageSource, int amount) {
@@ -459,14 +465,15 @@ public class HamsterEntity extends AnimalEntity {
                 // TODO: implement this code
                 //this.setRevengeTarget((EntityLivingBase)var4);
             }
+            //TODO find out what recentlyhit does
             if (damageSource instanceof PlayerEntity) {
-                this.recentlyHit = 100;
+                //this.recentlyHit = 100;
                 this.target = (PlayerEntity)damageSource;
             }
             else if (damageSource instanceof WolfEntity) {
                 final WolfEntity wolf = (WolfEntity) damageSource;
                 if (wolf.isTamed()) {
-                    this.recentlyHit = 100;
+                    //this.recentlyHit = 100;
                     this.target = null;
                 }
             }
@@ -480,7 +487,7 @@ public class HamsterEntity extends AnimalEntity {
                 double var6;
                 double var7;
                 for (var6 = damageSource.x - this.x, var7 = damageSource.z - this.z; var6 * var6 + var7 * var7 < 1.0E-4; var6 = (Math.random() - Math.random()) * 0.01, var7 = (Math.random() - Math.random()) * 0.01) {}
-                this.damagedSwingDir = (float)(Math.atan2(var7, var6) * 180.0 / 3.141592653589793) - this.rotationYaw;
+                this.damagedSwingDir = (float)(Math.atan2(var7, var6) * 180.0 / 3.141592653589793) - this.yaw;
                 this.applyKnockback(damageSource, amount, var6, var7);
             }
             else {
@@ -623,7 +630,7 @@ public class HamsterEntity extends AnimalEntity {
                 this.setHamsterStanding(true);
                 this.standCount = 30;
                 this.setPath(null);
-                this.isJumping = false;
+                this.jumping = false;
             }
         }
         else if (this.isHamsterStanding() && this.standCount-- <= 0 && this.random.nextInt(10) == 0) {
@@ -905,7 +912,7 @@ public class HamsterEntity extends AnimalEntity {
     }
 
     private void procreate(HamsterEntity hamsterEntity) {
-        HamsterEntity child = (HamsterEntity) this.createChild((EntityAgeable)hamsterEntity);
+        HamsterEntity child = this.createChild(hamsterEntity);
         if (child != null) {
             this.setGrowingAge(6000);
             hamsterEntity.setGrowingAge(6000);
