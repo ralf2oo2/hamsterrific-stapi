@@ -3,15 +3,23 @@ package ralf2oo2.hamsterrific.entity;
 import com.google.common.reflect.ClassPath;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.ai.pathing.Path;
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import ralf2oo2.hamsterrific.event.init.ItemRegistry;
+import ralf2oo2.hamsterrific.mixin.LivingEntityAccessor;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -224,6 +232,7 @@ public class HamsterEntity extends AnimalEntity {
             if (this.random.nextInt(3) == 0) {
                 this.setHamsterAngry(false);
                 this.setPath(null);
+                // TODO: check if this is even necessary
                 this.isJumping = false;
                 this.setTarget(null);
                 this.target = null;
@@ -237,6 +246,498 @@ public class HamsterEntity extends AnimalEntity {
             this.heal(1);
         }
         return true;
+    }
+
+    private boolean interactSeedsTamed(ItemStack itemstack, PlayerEntity player) {
+        --itemstack.count;
+        if (itemstack.count <= 0) {
+            //player.inventory.setInventorySlotContents(player.inventory.currentItem, (ItemStack)null);
+        }
+        this.showHeartsOrSmokeFX("note", 1, false);
+        this.heal(1);
+        return true;
+    }
+
+    private boolean interactPaperTamed(PlayerEntity player) {
+        this.isRemoteMountEntity(player);
+        return true;
+    }
+
+    private void isRemoteMountEntity(final Entity entity) {
+        if (this.vehicle == entity) {
+            this.setPositionAndAngles(this.vehicle.x, this.vehicle.boundingBox.minY + this.vehicle.height, this.vehicle.z, this.yaw, this.pitch);
+            this.vehicle = null;
+        }
+        else if (this.vehicle == null) {
+            this.vehicle = entity;
+            this.x = entity.x;
+            this.y = entity.boundingBox.minY + this.height;
+            this.z = entity.z;
+            this.setPositionAndAngles(this.x, this.y, this.z, this.yaw, this.pitch);
+        }
+    }
+
+    private boolean interactOthersTamed() {
+        if (this.isHamsterStanding() || !this.isHamsterSitting()) {
+            this.setHamsterSitting(true);
+        }
+        else if (this.isHamsterSitting()) {
+            this.setHamsterSitting(false);
+        }
+        this.isJumping = false;
+        this.setPath((PathEntity)null);
+        this.setTarget(null);
+        //TODO: this code originally refered to entityToAttack, this code might not exist in b1.7.3 and could possibly be removed
+        this.target = null;
+        return true;
+    }
+
+    @Override
+    protected void tickLiving() {
+        super.tickLiving();
+        if (this.targetFood != null) {
+            this.actionToTargetFood();
+        }
+        if (this.isInWater()) {
+            this.setHamsterSitting(false);
+            this.setHamsterStanding(false);
+        }
+        if (this.isHamsterStanding() || this.isHamsterSitting()) {
+            this.movementBlocked = false;
+            this.isJumping = false;
+            this.setPath(null);
+            //TODO: setTarget is probably incorrect
+            this.setTarget(null);
+            this.target = null;
+        }
+    }
+
+    private void actionToTargetFood() {
+        if (!this.isMovementBlocked() && !this.hasPath() && !this.isHamsterAngry() && this.vehicle == null && this.targetFood.isAlive()) {
+            final float distance = this.targetFood.getDistance(this);
+            if (distance > 1.0f) {
+                // TODO: figure out what the original booleans in the method did
+                final Path path = this.world.findPath(this, this.targetFood, 16.0f);
+                this.setPath(path);
+            }
+            else if (distance < 0.8f) {
+                if (this.stackCount == 0) {
+                    this.setPath(null);
+                    this.targetFood.dead = true;
+                    this.targetFood = null;
+                    this.addFoodStack();
+                    this.showHeartsOrSmokeFX("heart", 1, false);
+                    this.stackCount = 20;
+                }
+                else {
+                    --this.stackCount;
+                }
+            }
+        }
+        else if (!this.targetFood.isAlive()) {
+            this.targetFood = null;
+            this.stackCount = 20;
+        }
+    }
+
+    @Override
+    public void heal(int amount) {
+        super.heal(amount);
+        // TODO: confirm if this change is correct, it is not
+        this.hurtTime = this.damagedTime / 2;
+    }
+
+    @Override
+    public boolean isCollidable() {
+        if (this.vehicle != null && this.vehicle instanceof PlayerEntity) {
+            final ItemStack itemstack = ((PlayerEntity)this.vehicle).getHand();
+            if (itemstack == null || itemstack.itemId == Item.PAPER.id) {
+                return false;
+            }
+        }
+        return super.isCollidable();
+    }
+
+    @Override
+    public boolean isInsideWall() {
+        return this.vehicle == null && super.isInsideWall();
+    }
+
+    @Override
+    public boolean damage(Entity damageSource, int amount) {
+        if (this.vehicle != null) {
+            return false;
+        }
+        this.inLove = 0;
+        this.setHamsterSitting(false);
+        this.setHamsterStanding(false);
+        if (damageSource != null && !(damageSource instanceof PlayerEntity) && !(damageSource instanceof ArrowEntity)) {
+            amount = (int)((amount + 1.0f) / 2.0f);
+        }
+
+        Entity lookTarget = ((LivingEntityAccessor)damageSource).getLookTarget();
+
+        if (lookTarget != null && lookTarget instanceof PlayerEntity && this.givemeEntity == null) {
+            this.givemeEntity = (PlayerEntity)lookTarget;
+        }
+        if (!this.isHamsterTamed() && !this.isHamsterAngry()) {
+            if (lookTarget instanceof PlayerEntity) {
+                this.setHamsterAngry(true);
+                this.target = lookTarget;
+            }
+            if (lookTarget instanceof ArrowEntity && ((ArrowEntity)lookTarget).owner != null) {
+                lookTarget = ((ArrowEntity)lookTarget).owner;
+            }
+            if (lookTarget instanceof LivingEntity) {
+                List<HamsterEntity> list = (List<HamsterEntity>)this.world.collectEntitiesByClass(HamsterEntity.class, Box.create(this.x, this.y, this.z, this.x + 1.0, this.y + 1.0, this.z + 1.0).expand(16.0, 4.0, 16.0));
+                for (HamsterEntity hamster : list) {
+                    if (!hamster.isHamsterTamed() && hamster.target == null) {
+                        hamster.target = lookTarget;
+                        if (!(lookTarget instanceof PlayerEntity)) {
+                            continue;
+                        }
+                        hamster.setHamsterAngry(true);
+                    }
+                }
+            }
+        }
+        else if (lookTarget != this && lookTarget != null) {
+            if (this.isHamsterTamed() && lookTarget instanceof PlayerEntity && ((PlayerEntity)lookTarget).name.equalsIgnoreCase(this.getHamsterOwner())) {
+                this.setTarget(null);
+                this.setHamsterAngry(false);
+                this.target = null;
+            }
+            else {
+                this.target = lookTarget;
+            }
+        }
+
+    }
+
+    public boolean entityLivingBaseAttackEntityFrom(final Entity damageSource, int amount) {
+//        if (this.isEntityInvulnerable()) {
+//            return false;
+//        }
+        if (this.world.isRemote) {
+            return false;
+        }
+        this.despawnCounter = 0;
+        if (this.health <= 0) {
+            return false;
+        }
+        // TODO: incompatible with current version, think about what to do with it
+//        if (par1DamageSource.isFireDamage() && this.isPotionActive(Potion.fireResistance)) {
+//            return false;
+//        }
+//        if (par1DamageSource == DamageSource.anvil || par1DamageSource == DamageSource.fallingBlock) {
+//            distance *= 0.75f;
+//        }
+        this.swingAnimationProgress = 1.5f;
+        boolean var3 = true;
+        if (this.hurtTime > this.damagedTime / 2) {
+            //TODO: damageAmount might be wrong here
+            if (amount <= damageAmount) {
+                return false;
+            }
+            this.damage(damageSource, (int)(amount - this.damageAmount));
+            this.damageAmount = amount;
+            var3 = false;
+        }
+        else {
+            this.damageAmount = amount;
+            this.prevHealth = this.health;
+            this.hurtTime = this.damagedTime;
+            this.damage(damageSource, amount);
+            // TODO: check for this
+            //this.maxHurtTime = 10;
+            this.hurtTime = 10;
+        }
+        this.damagedSwingDir = 0.0f;
+
+        if (damageSource != null) {
+            if (damageSource instanceof LivingEntity) {
+                // TODO: implement this code
+                //this.setRevengeTarget((EntityLivingBase)var4);
+            }
+            if (damageSource instanceof PlayerEntity) {
+                this.recentlyHit = 100;
+                this.target = (PlayerEntity)damageSource;
+            }
+            else if (damageSource instanceof WolfEntity) {
+                final WolfEntity wolf = (WolfEntity) damageSource;
+                if (wolf.isTamed()) {
+                    this.recentlyHit = 100;
+                    this.target = null;
+                }
+            }
+        }
+        if (var3) {
+            this.world.broadcastEntityEvent(this, (byte)2);
+//            if (par1DamageSource != DamageSource.drown) {
+//                this.setBeenAttacked();
+//            }
+            if (damageSource != null) {
+                double var6;
+                double var7;
+                for (var6 = damageSource.x - this.x, var7 = damageSource.z - this.z; var6 * var6 + var7 * var7 < 1.0E-4; var6 = (Math.random() - Math.random()) * 0.01, var7 = (Math.random() - Math.random()) * 0.01) {}
+                this.damagedSwingDir = (float)(Math.atan2(var7, var6) * 180.0 / 3.141592653589793) - this.rotationYaw;
+                this.applyKnockback(damageSource, amount, var6, var7);
+            }
+            else {
+                this.damagedSwingDir = (float)((int)(Math.random() * 2.0) * 180);
+            }
+        }
+        if (this.health <= 0) {
+            if (var3) {
+                this.world.playSound(this, this.getDeathSound(), this.getSoundVolume(), this.getSoundPitch());
+            }
+
+            // TODO: I don't think this is supported, replacing it with markDead for now
+            this.onKilledBy(damageSource);
+        }
+        else if (var3) {
+            this.world.playSound(this, this.getHurtSound(), this.getSoundVolume(), this.getSoundPitch());
+        }
+        return true;
+    }
+
+    @Override
+    protected Entity getTargetInRange() {
+        final Box expandedBoundingBox = this.boundingBox.expand(8.0, 8.0, 8.0);
+        if (this.inLove > 0) {
+            final List<HamsterEntity> hamstersInVincinity = (List<HamsterEntity>)this.world.collectEntitiesByClass(this.getClass(), expandedBoundingBox);
+            for (HamsterEntity hamsterCandidate : hamstersInVincinity) {
+                if (hamsterCandidate != this && hamsterCandidate.inLove > 0) {
+                    this.setTarget(null);
+                    return hamsterCandidate;
+                }
+            }
+        }
+        else if (this.getGrowingAge() == 0 && !this.isHamsterStanding() && !this.isHamsterSitting()) {
+            final List<PlayerEntity> playersInVincinity = (List<PlayerEntity>)this.world.collectEntitiesByClass(PlayerEntity.class, expandedBoundingBox);
+            for (final PlayerEntity playerCandidate : playersInVincinity) {
+                if (playerCandidate.getHand() != null && this.isBreedingItem(playerCandidate.getHand())) {
+                    this.setTarget(playerCandidate);
+                    this.setHamsterAngry(false);
+                    return playerCandidate;
+                }
+            }
+        }
+        else if (this.getGrowingAge() > 0 && !this.isHamsterStanding() && !this.isHamsterSitting()) {
+            final List<HamsterEntity> hamstersInVincinity = (List<HamsterEntity>)this.world.collectEntitiesByClass(this.getClass(), expandedBoundingBox);
+            for (final HamsterEntity hamsterCandidate : hamstersInVincinity) {
+                if (hamsterCandidate != this && hamsterCandidate.getGrowingAge() < 0) {
+                    this.setTarget(null);
+                    this.setHamsterAngry(false);
+                    this.target = null;
+                    return hamsterCandidate;
+                }
+            }
+        }
+        if (this.isHamsterAngry()) {
+            return this.world.getClosestPlayer(this, 16.0);
+        }
+        return null;
+    }
+
+    @Override
+    protected void attack(Entity other, float distance) {
+        if (other instanceof PlayerEntity) {
+            if (distance < 3.0f) {
+                final double d = other.x - this.x;
+                final double d2 = other.x - this.x;
+                this.yaw = (float)(Math.atan2(d2, d) * 180.0 / 3.141592653589793) - 90.0f;
+                this.movementBlocked = true;
+                this.isStanding = true;
+                this.jump();
+            }
+            PlayerEntity player = (PlayerEntity) other;
+            if (player.getHand() == null || !this.isBreedingItem(player.getHand())) {
+                this.target = null;
+            }
+        }
+        else if (other instanceof HamsterEntity) {
+            final HamsterEntity hamster = (HamsterEntity) other;
+            if (this.getGrowingAge() > 0 && hamster.getGrowingAge() < 0) {
+                if (distance < 2.5) {
+                    this.movementBlocked = true;
+                }
+            }
+            else if (this.inLove > 0 && hamster.inLove > 0) {
+                if (hamster.target == null) {
+                    hamster.target = this;
+                }
+                if (hamster.target == this && distance < 3.5) {
+                    ++hamster.inLove;
+                    ++this.inLove;
+                    ++this.breeding;
+                    if (this.breeding % 4 == 0) {
+                        this.world.addParticle("heart", this.x + this.random.nextFloat() * this.width * 2.0f - this.width, this.y + 0.5 + this.random.nextFloat() * this.height, this.z + this.random.nextFloat() * this.width * 2.0f - this.width, 0.0, 0.0, 0.0);
+                    }
+                    if (this.breeding == 10) {
+                        this.procreate((HamsterEntity)other);
+                    }
+                }
+                else {
+                    this.breeding = 0;
+                }
+            }
+            else {
+                this.breeding = 0;
+                this.target = null;
+            }
+        }
+        if (distance > 2.0f && distance < 6.0f && this.random.nextInt(10) == 0) {
+            if (this.onGround) {
+                final double distanceX = other.x - this.x;
+                final double distanceZ = other.z - this.z;
+                final float f2 = MathHelper.sqrt(distanceX * distanceX + distanceZ * distanceZ);
+                this.velocityX = distanceX / f2 * 0.5 * 0.800000011920929 + this.velocityX * 0.20000000298023224;
+                this.velocityZ = distanceZ / f2 * 0.5 * 0.800000011920929 + this.velocityZ * 0.20000000298023224;
+                this.velocityY = 0.4000000059604645;
+            }
+        }
+        else if (!(other instanceof HamsterEntity) && (!(other instanceof PlayerEntity) || !((PlayerEntity)other).name.equalsIgnoreCase(this.getHamsterOwner())) && distance < 1.5 && other.boundingBox.maxY > this.boundingBox.minY && other.boundingBox.minY < this.boundingBox.maxY) {
+            this.attackCooldown = 20;
+            other.damage(this, 1);
+        }
+    }
+
+    @Override
+    protected void jump() {
+        this.velocityY = 0.3;
+    }
+
+    @Override
+    public void tickMovement() {
+        if (this.isHamsterAngry()) {
+            this.inLove = 0;
+        }
+        super.tickMovement();
+        if (this.health < 10) {
+            this.eatFood();
+            this.eatCount = 5000;
+        }
+        if (!this.isHamsterStanding() && !this.isHamsterSitting()) {
+            if (this.random.nextInt(20) == 0 && this.random.nextInt(20) == 0) {
+                this.setHamsterStanding(true);
+                this.standCount = 30;
+                this.setPath(null);
+                this.isJumping = false;
+            }
+        }
+        else if (this.isHamsterStanding() && this.standCount-- <= 0 && this.random.nextInt(10) == 0) {
+            this.setHamsterStanding(false);
+        }
+        if (this.getFoodStackCount() > 0) {
+            if (this.eatCount == 0) {
+                if (this.random.nextInt(30) == 0 && this.random.nextInt(30) == 0) {
+                    this.eatFood();
+                    this.eatCount = 5000;
+                }
+            }
+            else {
+                --this.eatCount;
+            }
+        }
+        this.looksWithInterest = false;
+        if (!this.hasPath() && !this.isHamsterAngry()) {
+            // TODO: check if this is correct
+            Entity entity = this.getTarget();
+            if (entity instanceof PlayerEntity) {
+                PlayerEntity player = (PlayerEntity) entity;
+                ItemStack itemstack = player.getHand();
+                if (itemstack != null && itemstack.itemId == Item.SEEDS.id) {
+                    this.looksWithInterest = true;
+                }
+            }
+        }
+        if (this.targetFood == null) {
+            final List<Entity> loadedEntities = (List<Entity>)this.world.entities;
+            for (final Entity entity2 : loadedEntities) {
+                if (!(entity2 instanceof ItemEntity)) {
+                    continue;
+                }
+                final ItemEntity itemEntity = (ItemEntity) entity2;
+                final ItemStack item = itemEntity.stack;
+                if (item == null || item.itemId != Item.SEEDS.id) {
+                    continue;
+                }
+                if (itemEntity.getDistance(this) >= 5.0f) {
+                    continue;
+                }
+                this.targetFood = itemEntity;
+            }
+        }
+        if ((this.isHamsterSitting() | this.isHamsterStanding()) && this.hasPath()) {
+            this.setTarget(null);
+        }
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        this.field_25054_c = this.field_25048_b;
+        if (this.looksWithInterest) {
+            this.field_25048_b += (1.0f - this.field_25048_b) * 0.4f;
+        }
+        else {
+            this.field_25048_b += (0.0f - this.field_25048_b) * 0.4f;
+        }
+        if (this.looksWithInterest) {
+            // TODO: verify if this is correct
+            this.lookTimer = 10;
+        }
+        if (this.random.nextInt(10) == 5) {
+            ++this.age;
+        }
+    }
+
+    public float getInterestedAngle(final float f) {
+        return (this.field_25054_c + (this.field_25048_b - this.field_25054_c) * f) * 0.15f * 3.141593f;
+    }
+
+    @Override
+    protected boolean isMovementBlocked() {
+        return this.isHamsterSitting() || this.isHamsterStanding();
+    }
+
+    public String getHamsterOwner() {
+        return this.dataTracker.getString(17);
+    }
+
+    public void setHamsterOwner(String owner) {
+        this.dataTracker.set(17, owner);
+    }
+
+    public boolean isInBall() {
+        return this.dataTracker.getByte(20) == 1;
+    }
+
+    public void setInBall(boolean inBall) {
+        this.dataTracker.set(20, (byte)(inBall ? 1 : 0));
+    }
+
+    public int getBallColor() {
+        return this.dataTracker.getByte(21);
+    }
+
+    public void setBallColor(int color) {
+        this.dataTracker.set(21, (byte)color);
+    }
+
+    public boolean isHamsterSitting() {
+        return (this.dataTracker.getByte(16) & 0x1) != 0x0;
+    }
+
+    public void setHamsterSitting(boolean flag) {
+        byte hamsterSitting = this.dataTracker.getByte(16);
+        if (flag) {
+            this.dataTracker.set(16, (byte)(hamsterSitting | 0x1));
+        }
+        else {
+            this.dataTracker.set(16, (byte)(hamsterSitting & 0xFFFFFFFE));
+        }
     }
 
     void showHeartsOrSmokeFX(String name, int i, boolean flag) {
@@ -334,6 +835,19 @@ public class HamsterEntity extends AnimalEntity {
             return true;
         }
         return false;
+    }
+
+    public HamsterEntity createChild(HamsterEntity hamster) {
+        HamsterEntity child = new HamsterEntity(this.world);
+
+        if (hamster.isHamsterTamed()) {
+            child.setHamsterTamed(true);
+            child.setHamsterOwner(hamster.getHamsterOwner());
+        }
+
+        child.setHamsterColor(hamster.getHamsterColor());
+        child.resourceLocation = hamster.resourceLocation;
+        return child;
     }
 
     public boolean isRidingPlayer(){
