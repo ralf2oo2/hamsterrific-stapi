@@ -69,6 +69,11 @@ public class HamsterEntity extends AgeableEntity {
         }
     }
 
+    @Override
+    public String getTexture() {
+        return resourceLocation;
+    }
+
     private String getRandomHamsterColor() {
         this.hamsterColorInitialize();
         Collections.shuffle(hamsterColorList);

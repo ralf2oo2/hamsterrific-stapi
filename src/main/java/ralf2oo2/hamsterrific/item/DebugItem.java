@@ -15,7 +15,7 @@ public class DebugItem extends TemplateItem {
     @Override
     public boolean useOnBlock(ItemStack stack, PlayerEntity user, World world, int x, int y, int z, int side) {
         HamsterEntity hamsterEntity = new HamsterEntity(world);
-        hamsterEntity.setPositionAndAngles(x, y, z, 0, 0);
+        hamsterEntity.setPositionAndAngles(x, y + 1, z, 0, 0);
         world.spawnEntity(hamsterEntity);
         return true;
     }
