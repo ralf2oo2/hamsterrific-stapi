@@ -46,7 +46,7 @@ public class HamsterEntity extends AgeableEntity {
     public HamsterEntity(World world) {
         super(world);
         this.health = 10;
-        //this.standingEyeHeight = 0.2f; should be Yoffset if it exists
+        this.standingEyeHeight = 0.2f; //should be Yoffset if it exists
         this.setBoundingBoxSpacing(0.3f, 0.3f);
 
         this.looksWithInterest = false;
@@ -855,6 +855,10 @@ public class HamsterEntity extends AgeableEntity {
         child.setHamsterColor(hamster.getHamsterColor());
         child.resourceLocation = hamster.resourceLocation;
         return child;
+    }
+
+    public boolean isRiding() {
+        return this.vehicle != null;
     }
 
     public boolean isRidingPlayer(){
