@@ -137,7 +137,6 @@ public class HamsterEntityModel extends EntityModel {
         this.hamsterTail.pitch = 1.570796f;
     }
 
-    // TODO: implement animation
     @Override
     public void animateModel(LivingEntity entity, float limbAngle, float limbDistance, float tickDelta) {
         super.animateModel(entity, limbAngle, limbDistance, tickDelta);

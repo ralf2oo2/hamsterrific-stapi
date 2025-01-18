@@ -381,7 +381,7 @@ public class HamsterEntity extends AgeableEntity {
             amount = (int)((amount + 1.0f) / 2.0f);
         }
 
-        Entity lookTarget = ((LivingEntityAccessor)damageSource).getLookTarget();
+        Entity lookTarget = damageSource != null ? ((LivingEntityAccessor)damageSource).getLookTarget() : null;
 
         if (lookTarget != null && lookTarget instanceof PlayerEntity && this.givemeEntity == null) {
             this.givemeEntity = (PlayerEntity)lookTarget;
@@ -445,7 +445,7 @@ public class HamsterEntity extends AgeableEntity {
             if (amount <= damageAmount) {
                 return false;
             }
-            this.damage(damageSource, (int)(amount - this.damageAmount));
+            this.applyDamage((int)(amount - this.damageAmount));
             this.damageAmount = amount;
             var3 = false;
         }
@@ -453,7 +453,7 @@ public class HamsterEntity extends AgeableEntity {
             this.damageAmount = amount;
             this.prevHealth = this.health;
             this.hurtTime = this.damagedTime;
-            this.damage(damageSource, amount);
+            this.applyDamage(amount);
             // TODO: check for this
             //this.maxHurtTime = 10;
             this.hurtTime = 10;

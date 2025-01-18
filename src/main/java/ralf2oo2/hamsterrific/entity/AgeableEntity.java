@@ -13,7 +13,7 @@ public class AgeableEntity extends MobEntity {
     @Override
     protected void initDataTracker() {
         super.initDataTracker();
-        this.dataTracker.set(12, 0);
+        this.dataTracker.startTracking(12, 0);
     }
 
     @Override
