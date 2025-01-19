@@ -19,9 +19,13 @@ public class EntityMixin{
 
     @Inject(method = "getPassengerRidingHeight", at = @At("HEAD"), cancellable = true)
     void hamsterrific_modifyPlayerRidingHeight(CallbackInfoReturnable<Double> cir){
-        if(PlayerEntity.class.isAssignableFrom(this.getClass())){
-            if(passenger instanceof HamsterEntity){
-                cir.setReturnValue(0.25D);
+        if(passenger instanceof HamsterEntity hamsterEntity){
+            if(hamsterEntity.vehicle instanceof PlayerEntity playerEntity){
+                double ridingHeight = 0.25d;
+                if(playerEntity.isSneaking()){
+                    ridingHeight -= 0.05d;
+                }
+                cir.setReturnValue(ridingHeight);
             }
         }
     }
