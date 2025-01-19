@@ -6,6 +6,7 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.ai.pathing.Path;
+import net.minecraft.entity.passive.ChickenEntity;
 import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
@@ -15,6 +16,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
+import org.lwjgl.Sys;
 import ralf2oo2.hamsterrific.event.init.ItemRegistry;
 import ralf2oo2.hamsterrific.mixin.LivingEntityAccessor;
 
@@ -166,6 +168,7 @@ public class HamsterEntity extends AgeableEntity {
 
     @Override
     public boolean interact(PlayerEntity player) {
+        System.out.println("interract");
         ItemStack itemstack = player.getHand();
         if (itemstack != null && this.isBreedingItem(itemstack) && this.getGrowingAge() == 0) {
 
@@ -272,9 +275,13 @@ public class HamsterEntity extends AgeableEntity {
 
     // When player uses paper on tamed hamster
     private boolean interactPaperTamed(PlayerEntity player) {
+        System.out.println("paper");
         if(player.passenger == null || player.passenger == this){
             setVehicle(player);
         }
+//        else if(player.passenger == this){
+//            this.vehicle = null;
+//        }
         return true;
     }
 
@@ -371,7 +378,7 @@ public class HamsterEntity extends AgeableEntity {
     public boolean isCollidable() {
         if (this.vehicle != null && this.vehicle instanceof PlayerEntity) {
             final ItemStack itemstack = ((PlayerEntity)this.vehicle).getHand();
-            if (itemstack == null || itemstack.itemId == Item.PAPER.id) {
+            if (itemstack == null || itemstack.itemId != Item.PAPER.id) {
                 return false;
             }
         }
@@ -399,7 +406,7 @@ public class HamsterEntity extends AgeableEntity {
             amount = (int)((amount + 1.0f) / 2.0f);
         }
 
-        Entity lookTarget = damageSource != null ? ((LivingEntityAccessor)damageSource).getLookTarget() : null;
+        Entity lookTarget = damageSource != null ? ((LivingEntityAccessor)this).getLookTarget() : null;
 
         if (lookTarget != null && lookTarget instanceof PlayerEntity && this.givemeEntity == null) {
             this.givemeEntity = (PlayerEntity)lookTarget;
@@ -578,16 +585,15 @@ public class HamsterEntity extends AgeableEntity {
 
     @Override
     protected void attack(Entity other, float distance) {
-        if (other instanceof PlayerEntity) {
+        if (other instanceof PlayerEntity player) {
             if (distance < 3.0f) {
                 final double d = other.x - this.x;
                 final double d2 = other.x - this.x;
                 this.yaw = (float)(Math.atan2(d2, d) * 180.0 / 3.141592653589793) - 90.0f;
                 this.movementBlocked = true;
-                this.isStanding = true;
-                this.jump();
+//                this.isStanding = true;
+//                this.jump();
             }
-            PlayerEntity player = (PlayerEntity) other;
             if (player.getHand() == null || !this.isBreedingItem(player.getHand())) {
                 this.target = null;
             }
@@ -644,8 +650,11 @@ public class HamsterEntity extends AgeableEntity {
         this.velocityY = 0.3;
     }
 
+
+    // TODO: inlove counter needs to be handled here or in AgeableEntity
     @Override
     public void tickMovement() {
+        super.tickMovement();
         if (this.isHamsterAngry()) {
             this.inLove = 0;
         }
@@ -820,6 +829,12 @@ public class HamsterEntity extends AgeableEntity {
     }
 
     public void setHamsterAngry(boolean flag) {
+        if(flag){
+            System.out.println("Hamster is mad");
+        }
+        else{
+            System.out.println("Hamster is not mad");
+        }
         byte angry = this.dataTracker.getByte(16);
         if (flag) {
             this.dataTracker.set(16, (byte)(angry | 8));
@@ -827,6 +842,7 @@ public class HamsterEntity extends AgeableEntity {
         else {
             this.dataTracker.set(16, (byte)(angry & -9));
         }
+        System.out.println(isHamsterAngry());
     }
 
     public boolean isHamsterStanding() {
@@ -916,6 +932,8 @@ public class HamsterEntity extends AgeableEntity {
         }
         return f;
     }
+
+
 
     // TODO: determine wether or not this method is used
     public boolean isRidingCreature() {
