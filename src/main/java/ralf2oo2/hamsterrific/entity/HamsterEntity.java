@@ -6,7 +6,6 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.ai.pathing.Path;
-import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
@@ -19,7 +18,6 @@ import net.minecraft.world.World;
 import ralf2oo2.hamsterrific.event.init.ItemRegistry;
 import ralf2oo2.hamsterrific.mixin.LivingEntityAccessor;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,12 +39,12 @@ public class HamsterEntity extends AgeableEntity {
     PlayerEntity givemeEntity;
     private int inLove;
     private int breeding;
-    private String resourceLocation;
+    private String hamsterTexture;
 
     public HamsterEntity(World world) {
         super(world);
         this.health = 10;
-        this.standingEyeHeight = 0.2f; //should be Yoffset if it exists
+        this.standingEyeHeight *= 0.5f;
         this.setBoundingBoxSpacing(0.3f, 0.3f);
 
         this.looksWithInterest = false;
@@ -65,13 +63,13 @@ public class HamsterEntity extends AgeableEntity {
         if (this.getHamsterColor() == "") {
             this.setHamsterColor(this.getRandomHamsterColor());
             texture = this.getHamsterColor();
-            this.resourceLocation = texture;
+            this.hamsterTexture = texture;
         }
     }
 
     @Override
     public String getTexture() {
-        return resourceLocation;
+        return hamsterTexture;
     }
 
     private String getRandomHamsterColor() {
@@ -145,7 +143,7 @@ public class HamsterEntity extends AgeableEntity {
         if (color.length() > 0) {
             if (HamsterEntity.hamsterColorList.contains(color)) {
                 this.setHamsterColor(color);
-                this.resourceLocation = color;
+                this.hamsterTexture = color;
             }
             else {
                 this.dead = true;
@@ -170,6 +168,7 @@ public class HamsterEntity extends AgeableEntity {
     public boolean interact(PlayerEntity player) {
         ItemStack itemstack = player.getHand();
         if (itemstack != null && this.isBreedingItem(itemstack) && this.getGrowingAge() == 0) {
+
             if (true) { // TODO: originally a creative check, might add BHCREATIVE support
                 --itemstack.count;
                 if (itemstack.count <= 0) {
@@ -180,6 +179,7 @@ public class HamsterEntity extends AgeableEntity {
             this.setHamsterAngry(false);
             this.inLove = 600;
             this.target = null;
+
             for (int i = 0; i < 7; ++i) {
                 final double velocityX = this.random.nextGaussian() * 0.02;
                 final double velocityY = this.random.nextGaussian() * 0.02;
@@ -205,23 +205,23 @@ public class HamsterEntity extends AgeableEntity {
                 this.addFoodStack();
                 return this.interactSeedsTamed(itemstack, player);
             }
-            if (itemstack == null || itemstack.itemId == Item.PAPER.id) {
-                return this.interactOthersTamed();
+            if (itemstack != null && itemstack.itemId == Item.PAPER.id) {
+                return this.interactPaperTamed(player);
             }
             if (this.isInBall()) {
                 this.setInBall(false);
                 return true;
             }
-            return this.interactPaperTamed(player);
+            return this.interactOthersTamed();
         }
     }
 
+    // When player uses seeds on untamed hamster
     private boolean interactSeedsNotTamed(ItemStack itemstack, PlayerEntity player) {
         --itemstack.count;
-        if (itemstack.count <= 0) {
-            //player.inventory.setInventorySlotContents(player.inventory.currentItem, (ItemStack)null); TODO: handle this
-        }
+
         if (!this.isHamsterAngry()) {
+            // Try to tame hamster
             if (this.random.nextInt(3) == 0) {
                 this.setHamsterTamed(true);
                 this.setPath(null);
@@ -240,14 +240,15 @@ public class HamsterEntity extends AgeableEntity {
             }
         }
         else {
+            // Try to calm down hamster
             if (this.random.nextInt(3) == 0) {
                 this.setHamsterAngry(false);
                 this.setPath(null);
-                // TODO: check if this is even necessary
                 this.jumping = false;
                 this.setTarget(null);
                 this.target = null;
                 this.showHeartsOrSmokeFX("note", 1, false);
+                this.world.playSound(this, this.getEatSound(), this.getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2F + 1.0F);
                 this.world.broadcastEntityEvent(this, (byte)7);
             }
             else {
@@ -259,21 +260,25 @@ public class HamsterEntity extends AgeableEntity {
         return true;
     }
 
+    // When player uses seeds on tamed hamster
     private boolean interactSeedsTamed(ItemStack itemstack, PlayerEntity player) {
         --itemstack.count;
-        if (itemstack.count <= 0) {
-            //player.inventory.setInventorySlotContents(player.inventory.currentItem, (ItemStack)null);
-        }
+
+        this.world.playSound(this, this.getEatSound(), this.getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2F + 1.0F);
         this.showHeartsOrSmokeFX("note", 1, false);
         this.heal(1);
         return true;
     }
 
+    // When player uses paper on tamed hamster
     private boolean interactPaperTamed(PlayerEntity player) {
-        this.isRemoteMountEntity(player);
+        if(player.passenger == null || player.passenger == this){
+            setVehicle(player);
+        }
         return true;
     }
 
+    // TODO: check if this can be safely removed
     private void isRemoteMountEntity(final Entity entity) {
         if (this.vehicle == entity) {
             this.setPositionAndAngles(this.vehicle.x, this.vehicle.boundingBox.minY + this.vehicle.height, this.vehicle.z, this.yaw, this.pitch);
@@ -288,6 +293,7 @@ public class HamsterEntity extends AgeableEntity {
         }
     }
 
+    // When player uses item that doesn't have any function on hamster
     private boolean interactOthersTamed() {
         if (this.isHamsterStanding() || !this.isHamsterSitting()) {
             this.setHamsterSitting(true);
@@ -298,8 +304,6 @@ public class HamsterEntity extends AgeableEntity {
         this.jumping = false;
         this.setPath(null);
         this.setTarget(null);
-        //TODO: this code originally refered to entityToAttack, this code might not exist in b1.7.3 and could possibly be removed
-        this.target = null;
         return true;
     }
 
@@ -317,9 +321,7 @@ public class HamsterEntity extends AgeableEntity {
             this.movementBlocked = false;
             this.jumping = false;
             this.setPath(null);
-            //TODO: setTarget is probably incorrect
             this.setTarget(null);
-            this.target = null;
         }
     }
 
@@ -327,17 +329,17 @@ public class HamsterEntity extends AgeableEntity {
         if (!this.isMovementBlocked() && !this.hasPath() && !this.isHamsterAngry() && this.vehicle == null && this.targetFood.isAlive()) {
             final float distance = this.targetFood.getDistance(this);
             if (distance > 1.0f) {
-                // TODO: figure out what the original booleans in the method did
                 final Path path = this.world.findPath(this, this.targetFood, 16.0f);
                 this.setPath(path);
             }
             else if (distance < 0.8f) {
                 if (this.stackCount == 0) {
                     this.setPath(null);
-                    this.targetFood.dead = true;
+                    this.targetFood.markDead();
                     this.targetFood = null;
                     this.addFoodStack();
                     this.showHeartsOrSmokeFX("heart", 1, false);
+                    this.world.playSound(this, this.getEatSound(), this.getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2F + 1.0F);
                     this.stackCount = 20;
                 }
                 else {
@@ -353,9 +355,16 @@ public class HamsterEntity extends AgeableEntity {
 
     @Override
     public void heal(int amount) {
-        super.heal(amount);
-        // TODO: confirm if this change is correct, it is not
-        this.hurtTime = this.damagedTime / 2;
+        if(health <= 0)
+        {
+            return;
+        }
+        health += amount;
+        if(health > maxHealth)
+        {
+            health = maxHealth;
+        }
+        this.hearts = this.maxHealth / 2;
     }
 
     @Override
@@ -376,12 +385,16 @@ public class HamsterEntity extends AgeableEntity {
 
     @Override
     public boolean damage(Entity damageSource, int amount) {
+        // If hamster is riding on players head, ignore damage
         if (this.vehicle != null) {
             return false;
         }
+
         this.inLove = 0;
         this.setHamsterSitting(false);
         this.setHamsterStanding(false);
+
+        // Reduce incoming damage if it is not from a player
         if (damageSource != null && !(damageSource instanceof PlayerEntity) && !(damageSource instanceof ArrowEntity)) {
             amount = (int)((amount + 1.0f) / 2.0f);
         }
@@ -396,23 +409,27 @@ public class HamsterEntity extends AgeableEntity {
                 this.setHamsterAngry(true);
                 this.target = lookTarget;
             }
+
+            // If damageSource is arrow, get angry at player who shot it
             if (lookTarget instanceof ArrowEntity && ((ArrowEntity)lookTarget).owner != null) {
                 lookTarget = ((ArrowEntity)lookTarget).owner;
             }
+
+            // Set surrounding hamsters to angry if hamster is untamed
             if (lookTarget instanceof LivingEntity) {
                 List<HamsterEntity> list = (List<HamsterEntity>)this.world.collectEntitiesByClass(HamsterEntity.class, Box.create(this.x, this.y, this.z, this.x + 1.0, this.y + 1.0, this.z + 1.0).expand(16.0, 4.0, 16.0));
                 for (HamsterEntity hamster : list) {
                     if (!hamster.isHamsterTamed() && hamster.target == null) {
                         hamster.target = lookTarget;
-                        if (!(lookTarget instanceof PlayerEntity)) {
-                            continue;
+                        if (lookTarget instanceof PlayerEntity) {
+                            hamster.setHamsterAngry(true);
                         }
-                        hamster.setHamsterAngry(true);
                     }
                 }
             }
         }
         else if (lookTarget != this && lookTarget != null) {
+            // If owner hit hamster, ignore. otherwise get angry
             if (this.isHamsterTamed() && lookTarget instanceof PlayerEntity && ((PlayerEntity)lookTarget).name.equalsIgnoreCase(this.getHamsterOwner())) {
                 this.setTarget(null);
                 this.setHamsterAngry(false);
@@ -422,9 +439,10 @@ public class HamsterEntity extends AgeableEntity {
                 this.target = lookTarget;
             }
         }
-        return this.entityLivingBaseAttackEntityFrom(damageSource, amount);
+        return super.damage(damageSource, amount);
     }
 
+    // TODO: figure out what this method is supposed to do, It cam probably be removed
     public boolean entityLivingBaseAttackEntityFrom(final Entity damageSource, int amount) {
 //        if (this.isEntityInvulnerable()) {
 //            return false;
@@ -516,6 +534,8 @@ public class HamsterEntity extends AgeableEntity {
     @Override
     protected Entity getTargetInRange() {
         final Box expandedBoundingBox = this.boundingBox.expand(8.0, 8.0, 8.0);
+
+        // Look for other hamster in love to procreate
         if (this.inLove > 0) {
             final List<HamsterEntity> hamstersInVincinity = (List<HamsterEntity>)this.world.collectEntitiesByClass(this.getClass(), expandedBoundingBox);
             for (HamsterEntity hamsterCandidate : hamstersInVincinity) {
@@ -525,16 +545,20 @@ public class HamsterEntity extends AgeableEntity {
                 }
             }
         }
+
+        // Go after player holding food item
         else if (this.getGrowingAge() == 0 && !this.isHamsterStanding() && !this.isHamsterSitting()) {
             final List<PlayerEntity> playersInVincinity = (List<PlayerEntity>)this.world.collectEntitiesByClass(PlayerEntity.class, expandedBoundingBox);
             for (final PlayerEntity playerCandidate : playersInVincinity) {
                 if (playerCandidate.getHand() != null && this.isBreedingItem(playerCandidate.getHand())) {
-                    this.setTarget(playerCandidate);
+                    this.setTarget(null);
                     this.setHamsterAngry(false);
                     return playerCandidate;
                 }
             }
         }
+
+        // Stay with child hamster TODO: confirm if this is correct
         else if (this.getGrowingAge() > 0 && !this.isHamsterStanding() && !this.isHamsterSitting()) {
             final List<HamsterEntity> hamstersInVincinity = (List<HamsterEntity>)this.world.collectEntitiesByClass(this.getClass(), expandedBoundingBox);
             for (final HamsterEntity hamsterCandidate : hamstersInVincinity) {
@@ -569,7 +593,7 @@ public class HamsterEntity extends AgeableEntity {
             }
         }
         else if (other instanceof HamsterEntity) {
-            final HamsterEntity hamster = (HamsterEntity) other;
+            HamsterEntity hamster = (HamsterEntity) other;
             if (this.getGrowingAge() > 0 && hamster.getGrowingAge() < 0) {
                 if (distance < 2.5) {
                     this.movementBlocked = true;
@@ -649,15 +673,14 @@ public class HamsterEntity extends AgeableEntity {
                 }
             }
             else {
-                --this.eatCount;
+                this.eatCount--;
             }
         }
         this.looksWithInterest = false;
         if (!this.hasPath() && !this.isHamsterAngry()) {
             // TODO: check if this is correct
-            Entity entity = this.getTarget();
-            if (entity instanceof PlayerEntity) {
-                PlayerEntity player = (PlayerEntity) entity;
+            Entity entity = this.getLookTarget();
+            if (entity instanceof PlayerEntity player) {
                 ItemStack itemstack = player.getHand();
                 if (itemstack != null && itemstack.itemId == Item.SEEDS.id) {
                     this.looksWithInterest = true;
@@ -666,11 +689,11 @@ public class HamsterEntity extends AgeableEntity {
         }
         if (this.targetFood == null) {
             final List<Entity> loadedEntities = (List<Entity>)this.world.entities;
-            for (final Entity entity2 : loadedEntities) {
-                if (!(entity2 instanceof ItemEntity)) {
+            for (Entity loadedEntity : loadedEntities) {
+                if (!(loadedEntity instanceof ItemEntity)) {
                     continue;
                 }
-                final ItemEntity itemEntity = (ItemEntity) entity2;
+                final ItemEntity itemEntity = (ItemEntity) loadedEntity;
                 final ItemStack item = itemEntity.stack;
                 if (item == null || item.itemId != Item.SEEDS.id) {
                     continue;
@@ -681,6 +704,7 @@ public class HamsterEntity extends AgeableEntity {
                 this.targetFood = itemEntity;
             }
         }
+        // TODO: I think this needs to setpath, not settarget
         if ((this.isHamsterSitting() | this.isHamsterStanding()) && this.hasPath()) {
             this.setTarget(null);
         }
@@ -697,11 +721,10 @@ public class HamsterEntity extends AgeableEntity {
             this.field_25048_b += (0.0f - this.field_25048_b) * 0.4f;
         }
         if (this.looksWithInterest) {
-            // TODO: verify if this is correct
             this.lookTimer = 10;
         }
         if (this.random.nextInt(10) == 5) {
-            ++this.age;
+            this.age++;
         }
     }
 
@@ -709,9 +732,10 @@ public class HamsterEntity extends AgeableEntity {
         return (this.field_25054_c + (this.field_25048_b - this.field_25054_c) * f) * 0.15f * 3.141593f;
     }
 
+    // TODO: check if movementblocked should be here
     @Override
     protected boolean isMovementBlocked() {
-        return this.isHamsterSitting() || this.isHamsterStanding();
+        return this.isHamsterSitting() || this.isHamsterStanding() || this.movementBlocked;
     }
 
     public String getHamsterOwner() {
@@ -739,16 +763,16 @@ public class HamsterEntity extends AgeableEntity {
     }
 
     public boolean isHamsterSitting() {
-        return (this.dataTracker.getByte(16) & 0x1) != 0x0;
+        return (this.dataTracker.getByte(16) & 1) != 0;
     }
 
     public void setHamsterSitting(boolean flag) {
         byte hamsterSitting = this.dataTracker.getByte(16);
         if (flag) {
-            this.dataTracker.set(16, (byte)(hamsterSitting | 0x1));
+            this.dataTracker.set(16, (byte)(hamsterSitting | 1));
         }
         else {
-            this.dataTracker.set(16, (byte)(hamsterSitting & 0xFFFFFFFE));
+            this.dataTracker.set(16, (byte)(hamsterSitting & -2));
         }
     }
 
@@ -770,16 +794,16 @@ public class HamsterEntity extends AgeableEntity {
     }
 
     public boolean isHamsterTamed() {
-        return (this.dataTracker.getByte(16) & 0x4) != 0x0;
+        return (this.dataTracker.getByte(16) & 4) != 0;
     }
 
     public void setHamsterTamed(boolean flag) {
         byte tamed = this.dataTracker.getByte(16);
         if (flag) {
-            this.dataTracker.set(16, (byte)(tamed | 0x4));
+            this.dataTracker.set(16, (byte)(tamed | 4));
         }
         else {
-            this.dataTracker.set(16, (byte)(tamed & 0xFFFFFFFB));
+            this.dataTracker.set(16, (byte)(tamed & -5));
         }
     }
 
@@ -792,16 +816,16 @@ public class HamsterEntity extends AgeableEntity {
     }
 
     public boolean isHamsterAngry() {
-        return (this.dataTracker.getByte(16) & 0x8) != 0x0;
+        return (this.dataTracker.getByte(16) & 8) != 0;
     }
 
     public void setHamsterAngry(boolean flag) {
         byte angry = this.dataTracker.getByte(16);
         if (flag) {
-            this.dataTracker.set(16, (byte)(angry | 0x8));
+            this.dataTracker.set(16, (byte)(angry | 8));
         }
         else {
-            this.dataTracker.set(16, (byte)(angry & 0xFFFFFFF7));
+            this.dataTracker.set(16, (byte)(angry & -9));
         }
     }
 
@@ -833,7 +857,7 @@ public class HamsterEntity extends AgeableEntity {
 
     private boolean addFoodStack() {
         if (this.foodStackCount != 5) {
-            ++this.foodStackCount;
+            this.foodStackCount++;
             return true;
         }
         this.heal(1);
@@ -842,7 +866,7 @@ public class HamsterEntity extends AgeableEntity {
 
     private boolean eatFood() {
         if (this.foodStackCount != 0) {
-            --this.foodStackCount;
+            this.foodStackCount--;
             this.heal(1);
             return true;
         }
@@ -858,10 +882,11 @@ public class HamsterEntity extends AgeableEntity {
         }
 
         child.setHamsterColor(hamster.getHamsterColor());
-        child.resourceLocation = hamster.resourceLocation;
+        child.hamsterTexture = hamster.hamsterTexture;
         return child;
     }
 
+    // TODO: can probably remove this and use hasVehicle
     public boolean isRiding() {
         return this.vehicle != null;
     }
@@ -904,7 +929,7 @@ public class HamsterEntity extends AgeableEntity {
 
     @Override
     public double getPassengerRidingHeight() {
-        return this.height;
+        return this.height * 0.75;
     }
 
     @Override
@@ -949,6 +974,10 @@ public class HamsterEntity extends AgeableEntity {
 
     public void resetInLove() {
         this.inLove = 0;
+    }
+
+    protected String getEatSound(){
+        return getRandomSound();
     }
 
     @Override
