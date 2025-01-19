@@ -272,7 +272,7 @@ public class HamsterEntity extends AgeableEntity {
         this.heal(1);
         return true;
     }
-
+    // TODO: write code for putting down hamster gracefully
     // When player uses paper on tamed hamster
     private boolean interactPaperTamed(PlayerEntity player) {
         System.out.println("paper");
@@ -995,7 +995,7 @@ public class HamsterEntity extends AgeableEntity {
     }
 
     protected String getEatSound(){
-        return getRandomSound();
+        return "hamsterrific:hamsterrific.sound.mobs.hamster.eatsound";
     }
 
     @Override
