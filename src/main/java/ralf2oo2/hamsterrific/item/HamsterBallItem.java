@@ -14,46 +14,35 @@ import ralf2oo2.hamsterrific.Hamsterrific;
 import ralf2oo2.hamsterrific.client.HamsterrificClient;
 import ralf2oo2.hamsterrific.client.render.entity.modelpart.BallModelPart;
 
-public class HamsterBallItem extends TemplateItem implements ItemWithRenderer {
+public class HamsterBallItem extends TemplateItem{
     private BallModelPart modelHamsterBall = new BallModelPart( 0, 0);
     public HamsterBallItem(Identifier identifier) {
         super(identifier);
-        this.setHasSubtypes(true);
+        this.setHasSubtypes(false);
         this.setMaxDamage(0);
         this.setMaxCount(1);
     }
 
-    @Override
-    public Item setHandheld() {
-        return super.setHandheld();
-    }
-
-    @Override
-    public String getTranslationKey(ItemStack stack) {
-        String[] names = new String[]{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"};
-        return super.getTranslationKey() + "." + names[stack.getDamage()];
-    }
-
     // TODO: replace with something that isn't deprecated
-    @Override
-    public void renderItemOnGui(ItemRenderer itemRenderer, TextRenderer textRenderer, TextureManager textureManager, int itemId, int damage, int textureIndex, int x, int y) {
-        Minecraft minecraft = HamsterrificClient.getMc();
-        minecraft.textureManager.bindTexture(minecraft.textureManager.getTextureId(BallModelPart.resource));
 
-        GL11.glPushMatrix();
-
-        GL11.glTranslatef((float)(x - 2), (float)(y + 3), -3.0F);
-        GL11.glScalef(10.0F, 10.0F, 10.0F);
-        GL11.glTranslatef(1.0F, 1.3F, 1.0F);
-        GL11.glScalef(1.0F, 1.0F, -1.0F);
-        GL11.glRotatef(210.0F, 1.0F, 0.0F, 0.0F);
-        GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
-        GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
-
-        GL11.glDisable(GL11.GL_CULL_FACE);
-        this.modelHamsterBall.renderWithColor(damage, 0.0625f);
-        GL11.glEnable(GL11.GL_CULL_FACE);
-
-        GL11.glPopMatrix();
-    }
+//    public void renderItemOnGui(ItemRenderer itemRenderer, TextRenderer textRenderer, TextureManager textureManager, int itemId, int damage, int textureIndex, int x, int y) {
+//        Minecraft minecraft = HamsterrificClient.getMc();
+//        minecraft.textureManager.bindTexture(minecraft.textureManager.getTextureId(BallModelPart.resource));
+//
+//        GL11.glPushMatrix();
+//
+//        GL11.glTranslatef((float)(x - 2), (float)(y + 3), -3.0F);
+//        GL11.glScalef(10.0F, 10.0F, 10.0F);
+//        GL11.glTranslatef(1.0F, 1.3F, 1.0F);
+//        GL11.glScalef(1.0F, 1.0F, -1.0F);
+//        GL11.glRotatef(210.0F, 1.0F, 0.0F, 0.0F);
+//        GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
+//        GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
+//
+//        GL11.glDisable(GL11.GL_CULL_FACE);
+//        this.modelHamsterBall.renderWithColor(damage, 0.0625f);
+//        GL11.glEnable(GL11.GL_CULL_FACE);
+//
+//        GL11.glPopMatrix();
+//    }
 }

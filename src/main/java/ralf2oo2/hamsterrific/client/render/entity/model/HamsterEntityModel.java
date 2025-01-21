@@ -4,6 +4,8 @@ import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
+import net.modificationstation.stationapi.api.client.render.model.json.JsonUnbakedModel;
+import net.modificationstation.stationapi.impl.client.arsenic.renderer.render.BakedModelRendererImpl;
 import org.lwjgl.opengl.GL11;
 import ralf2oo2.hamsterrific.client.render.entity.modelpart.BallModelPart;
 import ralf2oo2.hamsterrific.entity.HamsterEntity;
@@ -109,6 +111,7 @@ public class HamsterEntityModel extends EntityModel {
         if(isInBall){
             this.ball.color = ballColor;
             this.ball.render(scale);
+
         }
     }
 
