@@ -1,13 +1,32 @@
 package ralf2oo2.hamsterrific.client.render.entity.modelpart;
 
+import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.render.Tessellator;
 import net.minecraft.entity.passive.SheepEntity;
+import net.minecraft.item.ItemStack;
+import net.modificationstation.stationapi.api.client.StationRenderAPI;
+import net.modificationstation.stationapi.api.client.render.RendererAccess;
+import net.modificationstation.stationapi.api.client.render.model.BakedModel;
+import net.modificationstation.stationapi.api.client.render.model.BakedModelRenderer;
+import net.modificationstation.stationapi.api.client.render.model.BakedQuad;
+import net.modificationstation.stationapi.api.client.render.model.json.ModelTransformation;
+import net.modificationstation.stationapi.api.client.texture.SpriteAtlasTexture;
+import net.modificationstation.stationapi.api.client.texture.atlas.Atlases;
+import net.modificationstation.stationapi.api.util.math.Direction;
 import org.lwjgl.opengl.GL11;
 import ralf2oo2.hamsterrific.client.HamsterrificClient;
+import ralf2oo2.hamsterrific.event.init.ItemRegistry;
+
+import java.util.Random;
 
 public class BallModelPart extends ModelPart {
     public static final String resource = "hamsterrific:textures/entity/ball/hamsterball.png";
+    private BakedModelRenderer renderer;
+
+    private SpriteAtlasTexture atlas;
+    private BakedModel hamsterBall;
 
     ModelPart Shape1;
     ModelPart Shape2;
@@ -168,6 +187,46 @@ public class BallModelPart extends ModelPart {
         GL11.glPopMatrix();
 
         // TODO: determine if disabling this is necessary
+        GL11.glDisable(GL11.GL_NORMALIZE);
+        GL11.glDisable(GL11.GL_BLEND);
+    }
+
+    public void renderJson(){
+        //BakedModel model = StationRenderAPI.getBakedModelManager().getModel(ModelIdentifier.of(Hamsterrific.NAMESPACE.id("hamster_ball_item"), "inventory"));
+        if(hamsterBall == null){
+            renderer = RendererAccess.INSTANCE.getRenderer().bakedModelRenderer();
+            atlas = StationRenderAPI.getBakedModelManager().getAtlas(Atlases.GAME_ATLAS_TEXTURE);
+            hamsterBall = renderer.getModel(new ItemStack(ItemRegistry.hamsterBallItem), null, null, 42);
+        }
+
+        ImmutableList<BakedQuad> quads = hamsterBall.getQuads(null, null, new Random());
+        GL11.glPushMatrix();
+        GL11.glEnable(GL11.GL_NORMALIZE);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        GL11.glTranslatef(0.0f, 1f, 0.0f);
+        GL11.glRotatef((float)(rotation * 20), 1.0f, 0.0f, 0.0f);
+        GL11.glScalef(1.6f, 1.6f, 1.6f);
+
+        atlas.bindTexture();
+
+        Tessellator tessellator = Tessellator.INSTANCE;
+//        tessellator.startQuads();
+//        renderer.renderItem(new ItemStack(ItemRegistry.hamsterBallItem, 1), ModelTransformation.Mode.GROUND, 1f, hamsterBall);
+//        tessellator.draw();
+
+        if(!quads.isEmpty()){
+            tessellator.startQuads();
+            for(int i = 0; i < quads.size(); i++){
+                Direction face = quads.get(i).getFace();
+                tessellator.quad(quads.get(i), 0, 0, 0, 255, 1, 1, 1, face.getOffsetX(), face.getOffsetY(), face.getOffsetZ(), false);
+            }
+            tessellator.draw();
+        }
+
+        GL11.glPopMatrix();
+
         GL11.glDisable(GL11.GL_NORMALIZE);
         GL11.glDisable(GL11.GL_BLEND);
     }

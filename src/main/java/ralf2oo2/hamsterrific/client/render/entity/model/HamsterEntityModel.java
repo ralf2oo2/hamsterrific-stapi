@@ -1,14 +1,34 @@
 package ralf2oo2.hamsterrific.client.render.entity.model;
 
+import com.google.common.collect.ImmutableList;
+import net.minecraft.block.Block;
 import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.MathHelper;
-import net.modificationstation.stationapi.api.client.render.model.json.JsonUnbakedModel;
-import net.modificationstation.stationapi.impl.client.arsenic.renderer.render.BakedModelRendererImpl;
+import net.modificationstation.stationapi.api.block.BlockState;
+import net.modificationstation.stationapi.api.block.StationFlatteningBlock;
+import net.modificationstation.stationapi.api.client.StationRenderAPI;
+import net.modificationstation.stationapi.api.client.render.RendererAccess;
+import net.modificationstation.stationapi.api.client.render.model.BakedModel;
+import net.modificationstation.stationapi.api.client.render.model.BakedModelRenderer;
+import net.modificationstation.stationapi.api.client.render.model.BakedQuad;
+import net.modificationstation.stationapi.api.client.render.model.ModelIdentifier;
+import net.modificationstation.stationapi.api.client.render.model.json.ModelTransformation;
+import net.modificationstation.stationapi.api.client.texture.SpriteAtlasTexture;
+import net.modificationstation.stationapi.api.client.texture.atlas.Atlases;
+import net.modificationstation.stationapi.api.util.math.Direction;
+import net.modificationstation.stationapi.impl.client.arsenic.renderer.render.ArsenicItemRenderer;
 import org.lwjgl.opengl.GL11;
+import ralf2oo2.hamsterrific.Hamsterrific;
 import ralf2oo2.hamsterrific.client.render.entity.modelpart.BallModelPart;
 import ralf2oo2.hamsterrific.entity.HamsterEntity;
+import ralf2oo2.hamsterrific.event.init.ItemRegistry;
+
+import java.util.Random;
 
 public class HamsterEntityModel extends EntityModel {
     public ModelPart hamsterHead;
@@ -79,6 +99,8 @@ public class HamsterEntityModel extends EntityModel {
         this.setAngles(limbAngle, limbDistance, animationProgress, headYaw, headPitch, scale);
 
 
+
+
         if(isChild){
             GL11.glPushMatrix();
             GL11.glScalef(0.5f, 0.5f, 0.5f);
@@ -110,7 +132,7 @@ public class HamsterEntityModel extends EntityModel {
 
         if(isInBall){
             this.ball.color = ballColor;
-            this.ball.render(scale);
+            this.ball.renderJson();
 
         }
     }
