@@ -212,18 +212,18 @@ public class BallModelPart extends ModelPart {
         atlas.bindTexture();
 
         Tessellator tessellator = Tessellator.INSTANCE;
-//        tessellator.startQuads();
-//        renderer.renderItem(new ItemStack(ItemRegistry.hamsterBallItem, 1), ModelTransformation.Mode.GROUND, 1f, hamsterBall);
-//        tessellator.draw();
+        tessellator.startQuads();
+        renderer.renderItem(new ItemStack(ItemRegistry.hamsterBallItem), ModelTransformation.Mode.GROUND, 1f, hamsterBall);
+        tessellator.draw();
 
-        if(!quads.isEmpty()){
-            tessellator.startQuads();
-            for(int i = 0; i < quads.size(); i++){
-                Direction face = quads.get(i).getFace();
-                tessellator.quad(quads.get(i), 0, 0, 0, 255, 1, 1, 1, face.getOffsetX(), face.getOffsetY(), face.getOffsetZ(), false);
-            }
-            tessellator.draw();
-        }
+//        if(!quads.isEmpty()){
+//            tessellator.startQuads();
+//            for(int i = 0; i < quads.size(); i++){
+//                Direction face = quads.get(i).getFace();
+//                tessellator.quad(quads.get(i), 0, 0, 0, 0xff, 0xff, 0x00, 0xff, face.getOffsetX(), face.getOffsetY(), face.getOffsetZ(), false);
+//            }
+//            tessellator.draw();
+//        }
 
         GL11.glPopMatrix();
 
