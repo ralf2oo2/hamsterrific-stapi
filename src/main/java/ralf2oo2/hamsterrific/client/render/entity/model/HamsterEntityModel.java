@@ -247,7 +247,7 @@ public class HamsterEntityModel extends EntityModel {
             this.hamsterLegBackRight.pitch = MathHelper.cos(limbAngle * 1.5f) * 1.4f * limbDistance;
             this.hamsterLegBackLeft.pitch = MathHelper.cos(limbAngle * 1.5f + 3.141593f) * 1.4f * limbDistance;
             this.hamsterLegFrontRight.pitch = MathHelper.cos((float)Math.toRadians(150.0));
-            this.hamsterLegFrontLeft.pivotX = MathHelper.cos((float)Math.toRadians(150.0));
+            this.hamsterLegFrontLeft.pitch = MathHelper.cos((float)Math.toRadians(150.0));
             this.hamsterLegFrontRight.yaw = MathHelper.sin((float)Math.toRadians(-10.0));
             this.hamsterLegFrontLeft.yaw = MathHelper.sin((float)Math.toRadians(10.0));
 

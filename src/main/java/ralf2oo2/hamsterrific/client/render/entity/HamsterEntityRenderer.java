@@ -20,7 +20,7 @@ public class HamsterEntityRenderer extends LivingEntityRenderer {
         super(entityModel, shadowRadius);
         this.hamsterEntityModel = (HamsterEntityModel) entityModel;
         this.scale = 0.5f;
-        this.shadowRadius = 0.2f;
+        this.shadowRadius = shadowRadius;
     }
 
     @Override
@@ -70,9 +70,9 @@ public class HamsterEntityRenderer extends LivingEntityRenderer {
     @Override
     public void render(Entity entity, double x, double y, double z, float yaw, float pitch) {
         HamsterEntity hamsterEntity = (HamsterEntity) entity;
-        // TODO: check if hamster is child
-        if(false){
-            y -= 0.45;
+        this.shadowRadius = hamsterEntity.getShadowRadius();
+        if(hamsterEntity.isChild()){
+            y -= 0.40;
         }
         if(hamsterEntity.vehicle != null){
             if(false) { // TODO: hamsterEntity.isRidingPlayer()

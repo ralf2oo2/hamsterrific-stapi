@@ -24,7 +24,8 @@
       "ralf2oo2.hamsterrific.event.init.BlockEntityRegistry",
       "ralf2oo2.hamsterrific.event.init.BlockEntityRendererRegistry",
       "ralf2oo2.hamsterrific.event.init.ItemRegistry",
-      "ralf2oo2.hamsterrific.event.init.EntityRendererRegistry"
+      "ralf2oo2.hamsterrific.event.init.EntityRendererRegistry",
+      "ralf2oo2.hamsterrific.event.init.EntityRegistry"
     ],
     "stationapi:event_bus_client": [
     ],

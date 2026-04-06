@@ -16,7 +16,10 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
+import net.modificationstation.stationapi.api.server.entity.MobSpawnDataProvider;
+import net.modificationstation.stationapi.api.util.Identifier;
 import org.lwjgl.Sys;
+import ralf2oo2.hamsterrific.Hamsterrific;
 import ralf2oo2.hamsterrific.event.init.ItemRegistry;
 import ralf2oo2.hamsterrific.mixin.LivingEntityAccessor;
 
@@ -26,7 +29,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class HamsterEntity extends AgeableEntity {
+public class HamsterEntity extends AgeableEntity implements MobSpawnDataProvider {
     private ItemStack heldItem;
     private int stackCount;
     private int eatCount;
@@ -168,14 +171,13 @@ public class HamsterEntity extends AgeableEntity {
 
     @Override
     public boolean interact(PlayerEntity player) {
-        System.out.println("interract");
         ItemStack itemstack = player.getHand();
         if (itemstack != null && this.isBreedingItem(itemstack) && this.getGrowingAge() == 0) {
 
             if (true) { // TODO: originally a creative check, might add BHCREATIVE support
                 --itemstack.count;
                 if (itemstack.count <= 0) {
-                    //player.getHand() == null; TODO: handle this case if needed
+                    player.inventory.setStack(player.inventory.selectedSlot, null);
                 }
             }
             this.setTarget(null);
@@ -234,6 +236,7 @@ public class HamsterEntity extends AgeableEntity {
                 this.jumping = false;
                 this.health = 10;
                 this.setHamsterOwner(player.name);
+                world.playSound(this, getEatSound(), getSoundVolume(),(random.nextFloat() - random.nextFloat()) * 0.2F + 1.0F);
                 this.showHeartsOrSmokeFX("heart", 7, true);
                 this.world.broadcastEntityEvent(this, (byte)7);
             }
@@ -279,9 +282,6 @@ public class HamsterEntity extends AgeableEntity {
         if(player.passenger == null || player.passenger == this){
             setVehicle(player);
         }
-//        else if(player.passenger == this){
-//            this.vehicle = null;
-//        }
         return true;
     }
 
@@ -408,7 +408,7 @@ public class HamsterEntity extends AgeableEntity {
 
         Entity lookTarget = damageSource != null ? ((LivingEntityAccessor)this).getLookTarget() : null;
 
-        if (lookTarget != null && lookTarget instanceof PlayerEntity && this.givemeEntity == null) {
+        if (lookTarget instanceof PlayerEntity && this.givemeEntity == null) {
             this.givemeEntity = (PlayerEntity)lookTarget;
         }
         if (!this.isHamsterTamed() && !this.isHamsterAngry()) {
@@ -449,95 +449,6 @@ public class HamsterEntity extends AgeableEntity {
         return super.damage(damageSource, amount);
     }
 
-    // TODO: figure out what this method is supposed to do, It cam probably be removed
-    public boolean entityLivingBaseAttackEntityFrom(final Entity damageSource, int amount) {
-//        if (this.isEntityInvulnerable()) {
-//            return false;
-//        }
-        if (this.world.isRemote) {
-            return false;
-        }
-        this.despawnCounter = 0;
-        if (this.health <= 0) {
-            return false;
-        }
-        // TODO: incompatible with current version, think about what to do with it
-//        if (par1DamageSource.isFireDamage() && this.isPotionActive(Potion.fireResistance)) {
-//            return false;
-//        }
-//        if (par1DamageSource == DamageSource.anvil || par1DamageSource == DamageSource.fallingBlock) {
-//            distance *= 0.75f;
-//        }
-        this.swingAnimationProgress = 1.5f;
-        boolean var3 = true;
-        if (this.hurtTime > this.damagedTime / 2) {
-            //TODO: damageAmount might be wrong here
-            if (amount <= damageAmount) {
-                return false;
-            }
-            this.applyDamage((int)(amount - this.damageAmount));
-            this.damageAmount = amount;
-            var3 = false;
-        }
-        else {
-            this.damageAmount = amount;
-            this.prevHealth = this.health;
-            this.hurtTime = this.damagedTime;
-            this.applyDamage(amount);
-            // TODO: check for this
-            //this.maxHurtTime = 10;
-            this.hurtTime = 10;
-        }
-        this.damagedSwingDir = 0.0f;
-
-        if (damageSource != null) {
-            if (damageSource instanceof LivingEntity) {
-                // TODO: implement this code
-                //this.setRevengeTarget((EntityLivingBase)var4);
-            }
-            //TODO find out what recentlyhit does
-            if (damageSource instanceof PlayerEntity) {
-                //this.recentlyHit = 100;
-                this.target = (PlayerEntity)damageSource;
-            }
-            else if (damageSource instanceof WolfEntity) {
-                final WolfEntity wolf = (WolfEntity) damageSource;
-                if (wolf.isTamed()) {
-                    //this.recentlyHit = 100;
-                    this.target = null;
-                }
-            }
-        }
-        if (var3) {
-            this.world.broadcastEntityEvent(this, (byte)2);
-//            if (par1DamageSource != DamageSource.drown) {
-//                this.setBeenAttacked();
-//            }
-            if (damageSource != null) {
-                double var6;
-                double var7;
-                for (var6 = damageSource.x - this.x, var7 = damageSource.z - this.z; var6 * var6 + var7 * var7 < 1.0E-4; var6 = (Math.random() - Math.random()) * 0.01, var7 = (Math.random() - Math.random()) * 0.01) {}
-                this.damagedSwingDir = (float)(Math.atan2(var7, var6) * 180.0 / 3.141592653589793) - this.yaw;
-                this.applyKnockback(damageSource, amount, var6, var7);
-            }
-            else {
-                this.damagedSwingDir = (float)((int)(Math.random() * 2.0) * 180);
-            }
-        }
-        if (this.health <= 0) {
-            if (var3) {
-                this.world.playSound(this, this.getDeathSound(), this.getSoundVolume(), this.getSoundPitch());
-            }
-
-            // TODO: I don't think this is supported, replacing it with markDead for now
-            this.onKilledBy(damageSource);
-        }
-        else if (var3) {
-            this.world.playSound(this, this.getHurtSound(), this.getSoundVolume(), this.getSoundPitch());
-        }
-        return true;
-    }
-
     @Override
     protected Entity getTargetInRange() {
         final Box expandedBoundingBox = this.boundingBox.expand(8.0, 8.0, 8.0);
@@ -565,7 +476,6 @@ public class HamsterEntity extends AgeableEntity {
             }
         }
 
-        // Stay with child hamster TODO: confirm if this is correct
         else if (this.getGrowingAge() > 0 && !this.isHamsterStanding() && !this.isHamsterSitting()) {
             final List<HamsterEntity> hamstersInVincinity = (List<HamsterEntity>)this.world.collectEntitiesByClass(this.getClass(), expandedBoundingBox);
             for (final HamsterEntity hamsterCandidate : hamstersInVincinity) {
@@ -591,15 +501,12 @@ public class HamsterEntity extends AgeableEntity {
                 final double d2 = other.x - this.x;
                 this.yaw = (float)(Math.atan2(d2, d) * 180.0 / 3.141592653589793) - 90.0f;
                 this.movementBlocked = true;
-//                this.isStanding = true;
-//                this.jump();
             }
             if (player.getHand() == null || !this.isBreedingItem(player.getHand())) {
                 this.target = null;
             }
         }
-        else if (other instanceof HamsterEntity) {
-            HamsterEntity hamster = (HamsterEntity) other;
+        else if (other instanceof HamsterEntity hamster) {
             if (this.getGrowingAge() > 0 && hamster.getGrowingAge() < 0) {
                 if (distance < 2.5) {
                     this.movementBlocked = true;
@@ -610,14 +517,14 @@ public class HamsterEntity extends AgeableEntity {
                     hamster.target = this;
                 }
                 if (hamster.target == this && distance < 3.5) {
-                    ++hamster.inLove;
-                    ++this.inLove;
+//                    ++hamster.inLove;
+//                    ++this.inLove;
                     ++this.breeding;
                     if (this.breeding % 4 == 0) {
                         this.world.addParticle("heart", this.x + this.random.nextFloat() * this.width * 2.0f - this.width, this.y + 0.5 + this.random.nextFloat() * this.height, this.z + this.random.nextFloat() * this.width * 2.0f - this.width, 0.0, 0.0, 0.0);
                     }
-                    if (this.breeding == 10) {
-                        this.procreate((HamsterEntity)other);
+                    if (this.breeding >= 60) {
+                        this.procreate(hamster);
                     }
                 }
                 else {
@@ -658,7 +565,14 @@ public class HamsterEntity extends AgeableEntity {
         if (this.isHamsterAngry()) {
             this.inLove = 0;
         }
-        super.tickMovement();
+        if(inLove > 0) {
+            inLove--;
+            if(inLove % 10 == 0) {
+                this.showHeartsOrSmokeFX("heart", 1, false);
+            }
+        } else {
+            breeding = 0;
+        }
         if (this.health < 10) {
             this.eatFood();
             this.eatCount = 5000;
@@ -687,7 +601,6 @@ public class HamsterEntity extends AgeableEntity {
         }
         this.looksWithInterest = false;
         if (!this.hasPath() && !this.isHamsterAngry()) {
-            // TODO: check if this is correct
             Entity entity = this.getLookTarget();
             if (entity instanceof PlayerEntity player) {
                 ItemStack itemstack = player.getHand();
@@ -741,7 +654,6 @@ public class HamsterEntity extends AgeableEntity {
         return (this.field_25054_c + (this.field_25048_b - this.field_25054_c) * f) * 0.15f * 3.141593f;
     }
 
-    // TODO: check if movementblocked should be here
     @Override
     protected boolean isMovementBlocked() {
         return this.isHamsterSitting() || this.isHamsterStanding() || this.movementBlocked;
@@ -793,12 +705,10 @@ public class HamsterEntity extends AgeableEntity {
 
             if (flag) {
                 this.world.addParticle(name, this.x + (double)(this.random.nextFloat() * this.width * 2.0f) - (double)this.width, this.y + 0.5 + (double)(this.random.nextFloat() * this.height), this.z + (double)(this.random.nextFloat() * this.width * 2.0f) - (double)this.width, velocityX, velocityY, velocityZ);
-                this.world.playSound(this.x + 0.5, this.y + 0.5, this.z + 0.5, "hamsterrific:hamsterrific.sound.mobs.hamster.eatsound", 3.0f, 1.0f);
                 continue;
             }
 
             this.world.addParticle(name, this.x, this.y + 0.8, this.z, velocityX, velocityY, velocityZ);
-            this.world.playSound(this.x + 0.5, this.y + 0.5, this.z + 0.5, "hamsterrific:hamsterrific.sound.mobs.hamster.eatsound", 3.0f, 1.0f);
         }
     }
 
@@ -994,6 +904,15 @@ public class HamsterEntity extends AgeableEntity {
         this.inLove = 0;
     }
 
+    @Override
+    public float getShadowRadius() {
+        if(isChild()){
+            return 0.1f;
+        } else {
+            return 0.2f;
+        }
+    }
+
     protected String getEatSound(){
         return "hamsterrific:hamsterrific.sound.mobs.hamster.eatsound";
     }
@@ -1011,5 +930,10 @@ public class HamsterEntity extends AgeableEntity {
     @Override
     protected String getDeathSound() {
         return "hamsterrific:hamsterrific.sound.mobs.hamster.deathsound";
+    }
+
+    @Override
+    public Identifier getHandlerIdentifier() {
+        return Hamsterrific.NAMESPACE.id("hamster");
     }
 }
