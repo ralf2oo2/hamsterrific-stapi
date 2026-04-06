@@ -12,7 +12,7 @@ public class BlockRegistry {
     public static Block waterBottleBlock;
 
     @EventListener
-    private void registerBlocks(BlockRegistryEvent event) {
+    public void registerBlocks(BlockRegistryEvent event) {
         waterBottleBlock = new WaterBottleBlock(Identifier.of(Hamsterrific.NAMESPACE, "water_bottle"), Material.STONE).setTranslationKey(Hamsterrific.NAMESPACE, "water_bottle");
     }
 }

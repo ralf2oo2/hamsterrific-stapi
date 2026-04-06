@@ -15,7 +15,7 @@ public class ItemRegistry {
     public static Item hamsterFoodItem;
     public static Item debugStick;
     @EventListener
-    private void registerItems(ItemRegistryEvent event) {
+    public void registerItems(ItemRegistryEvent event) {
         debugStick = new DebugItem(Identifier.of(Hamsterrific.NAMESPACE, "debug")).setTranslationKey(Hamsterrific.NAMESPACE, "debug");
         hamsterBallItem = new HamsterBallItem(Identifier.of(Hamsterrific.NAMESPACE, "hamster_ball_item")).setTranslationKey("hamster_ball_item");
         hamsterFoodItem = new TemplateItem(Identifier.of(Hamsterrific.NAMESPACE, "hamster_food_item")).setTranslationKey("hamster_food_item");
